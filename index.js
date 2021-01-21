@@ -7,7 +7,7 @@
 const http = require('http'); // NOTE: import default module
 const fs = require('fs'); // NOTE: import default module 文件系统
 const querystring = require('querystring'); // NOTE: import default module
-const moment = require('moment') // Note: 日期
+const moment = require('moment'); // Note: 日期
 
 // Step 1: Open login page to get cookie 'ASP.NET_SessionId' and hidden input '_ASPNetRecycleSession'.
 //
@@ -16,6 +16,8 @@ var _ASPNetRecycleSession;
 var Department = '';
 var EID = '';
 var Name = '';
+var startTime = '';
+var endTime = '';
 
 function openLoginPage() {
 
@@ -343,26 +345,48 @@ function parseKQ(html) {
     };
 }
 
- function  askAll() {
-    inquire('2021-1-11', '2021-1-15', 'S2008003', false, )
-    .then(function () { inquire('2021-1-11', '2021-1-15', 'ANNE', false, )})
-    .then(function () { inquire('2021-1-11', '2021-1-15', 'Lance', false, )})
-    .then(function () { inquire('2021-1-11', '2021-1-15', 'Carlos Jiang', false, )})
-    .catch(function (err) {
+function askAll() {
+    startTime = '2021-01-01';
+    endTime = '2021-01-07';
+    inquire(startTime, endTime, 'S2008003', false, )
+        .then(function () {
+            inquire(startTime, endTime, 'Ce Xian', false, )
+        })
+        .then(function () {
+            inquire(startTime, endTime, 'Carlos Jiang', false, )
+        })
+        .then(function () {
+            inquire(startTime, endTime, 'Xu Qian', false, )
+        })
+        .then(function () {
+            inquire(startTime, endTime, 'Lance Li', false, )
+        })
+        .then(function () {
+            inquire(startTime, endTime, 'Anne', false, )
+        })
+        .then(function () {
+            inquire(startTime, endTime, 'Jack QP Zhang', false, )
+        })
+        .catch(function (err) {
             console.log(err);
         })
 }
+
 var count = 0;
 
 function TimeAdjust() {
+    let startDay = moment(startTime);
+    let endDay = moment(endTime);
     personTimeArr.push(Department);
     personTimeArr.push(EID);
     personTimeArr.push(Name);
     let personTimearr = personTimeArr.slice(count, personTimeArr.length);
     count = personTimeArr.length;
+    // console.log(personTimearr)
     let arriveTime = '08:50:00';
     let leaveTime = '16:50:00';
-    for (let i = personTimearr.length - 4; i >= 1;) {
+    // console.log(personTimearr);
+    for (let i = personTimearr.length - 4; i >= 0;) {
         if (i === personTimearr.length - 4) {
             console.log(personTimearr[personTimearr.length - 3] + ' ' + personTimearr[personTimearr.length - 2] + ' ' +
                 personTimearr[personTimearr.length - 1] + ':');
@@ -371,23 +395,30 @@ function TimeAdjust() {
         Time1.push(personTimearr[i][0]);
         Time1.push(personTimearr[i][1]);
         let TimeStr = Time1.join();
-        // console.log(moment(TimeStr, "M/D/YYYY H:mm:ss"));
-        // console.log(moment("12-25-1995,09:23:08", "M/D/YYYY H:mm:ss"));
         let m = moment(TimeStr, "M/D/YYYY H:mm:ss");
+        // console.log(m);
 
-        // 检查一个moment是否在另一个moment之前 true false
+        while (!m.isSame(startDay, 'day')) {
+            let day = startDay.format("M/D/YYYY");
+            if (startDay.weekday() === 0 || startDay.weekday() === 6) {
+                console.log(day + '       周末');
+            } else {
+                console.log(day + '       请假');
+            }
+            startDay = startDay.add(1, 'day');
+        }
         let j = i;
         let flag = 0;
         let Time2 = [];
         let TimeStr2 = '';
+        let printStr = '';
         // 上一个打卡时间
         if (i >= 1) {
             Time2.push(personTimearr[i - 1][0]);
             Time2.push(personTimearr[i - 1][1]);
             TimeStr2 = Time2.join();
         }
-        // 先判断同一天打卡几次
-        let printStr = '';
+        // 判断同一天打卡几次
         while (!(m.isBefore(moment(TimeStr2, "M/D/YYYY H:mm:ss"), 'day')) && i >= 1) {
             Time2 = [];
             Time2.push(personTimearr[i - 1][0]);
@@ -413,12 +444,12 @@ function TimeAdjust() {
             let incomeTime = moment(inCurrentstr, "M/D/YYYY H:mm:ss");
             // console.log(incomeTime);
             let outCurrentStr = '';
-            // 看是不是最近的那一天
-            if (i !== 0) {
-                outCurrentStr = personTimearr[i + 1].join();
-            } else {
+            if (i === 0 && moment(personTimearr[0].join(), "M/D/YYYY H:mm:ss").isSame(incomeTime, 'day')) {
                 outCurrentStr = personTimearr[i].join();
+            } else {
+                outCurrentStr = personTimearr[i + 1].join();
             }
+            // console.log(outCurrentStr);
             let leavTime = moment(outCurrentStr, "M/D/YYYY H:mm:ss");
             // console.log(leavTime);
             let workhours = leavTime.diff(incomeTime, 'hours');
@@ -439,6 +470,10 @@ function TimeAdjust() {
         } else {
             console.log(personTimearr[j][0] + ' ' + '   只刷卡一次');
             i--;
+        }
+        startDay = startDay.add(1, 'day');
+        if (m.isSame(endDay, 'day')) {
+            break;
         }
     }
 
