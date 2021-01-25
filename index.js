@@ -7,7 +7,7 @@
 const http = require('http'); // NOTE: import default module
 const fs = require('fs'); // NOTE: import default module 文件系统
 const querystring = require('querystring'); // NOTE: import default module
-const moment = require('moment'); // Note: 日期
+const moment = require('moment') // Note: 日期
 
 // Step 1: Open login page to get cookie 'ASP.NET_SessionId' and hidden input '_ASPNetRecycleSession'.
 //
@@ -16,6 +16,7 @@ var _ASPNetRecycleSession;
 var Department = '';
 var EID = '';
 var Name = '';
+var Arr = [];
 var startTime = '';
 var endTime = '';
 
@@ -207,83 +208,83 @@ function step3() {
  * @param {*} nextPage if go to next page
  * @param {*} nextStep 完成后调用此function
  */
-var inquire = function (beginDate, endDate, employeeIdOrName, nextPage, nextStep) {
-    return new Promise(function (resolve, reject) {
-        function callback(response) {
-            let chunks = [];
-            response.addListener('data', (chunk) => {
-                chunks.push(chunk);
-            });
-            response.on('end', () => {
-                let buff = Buffer.concat(chunks);
-                let html = buff.toString();
-                if (response.statusCode === 200) {
-                    let result = parseKQ(html);
-                    let fo = fs.createWriteStream(`tmp/step4-inquire-${employeeIdOrName}-${result.curPage}.html`);
-                    fo.write(html);
-                    fo.end();
-                    if (result.curPage < result.numPages) {
-                        inquire(beginDate, endDate, employeeIdOrName, true, nextStep);
-                    } else {
-                        console.log(`Inquiry about ${employeeIdOrName} is done.`);
-                        TimeAdjust();
-                        if (nextStep) { // If provided.
-                            nextStep();
-                        }
-                    }
-                } else {
-                    console.error(`Inquiry HTTP error: ${response.statusMessage}`);
-                }
-            });
-        }
-
-        var beginTime = '0:00';
-        var endTime = '23:59';
-
-        let postObj = {
-            'TQuarkScriptManager1': 'QueryResultUpdatePanel|QueryBtn',
-            'TQuarkScriptManager1_HiddenField': ';;AjaxControlToolkit, Version=1.0.20229.20821, Culture=neutral, PublicKeyToken=28f01b0e84b6d53e:en-US:c5c982cc-4942-4683-9b48-c2c58277700f:411fea1c:865923e8;;AjaxControlToolkit, Version=1.0.20229.20821, Culture=neutral, PublicKeyToken=28f01b0e84b6d53e:en-US:c5c982cc-4942-4683-9b48-c2c58277700f:91bd373d:d7d5263e:f8df1b50;;AjaxControlToolkit, Version=1.0.20229.20821, Culture=neutral, PublicKeyToken=28f01b0e84b6d53e:en-US:c5c982cc-4942-4683-9b48-c2c58277700f:e7c87f07:bbfda34c:30a78ec5;;AjaxControlToolkit, Version=1.0.20229.20821, Culture=neutral, PublicKeyToken=28f01b0e84b6d53e:en-US:c5c982cc-4942-4683-9b48-c2c58277700f:9b7907bc:9349f837:d4245214;;AjaxControlToolkit, Version=1.0.20229.20821, Culture=neutral, PublicKeyToken=28f01b0e84b6d53e:en-US:c5c982cc-4942-4683-9b48-c2c58277700f:e3d6b3ac;',
-            '__ctl07_Scroll': '0,0',
-            '__VIEWSTATEGENERATOR': 'A21EDEFC',
-            '_ASPNetRecycleSession': _ASPNetRecycleSession,
-            '__VIEWSTATE': __VIEWSTATE,
-            '_PageInstance': 26,
-            '__EVENTVALIDATION': __EVENTVALIDATION,
-            'AttNoNameCtrl1$InputTB': '上海欽江路',
-            'BeginDateTB$Editor': beginDate,
-            'BeginDateTB$_TimeEdit': beginTime,
-            'EndDateTB$Editor': endDate,
-            'EndDateTB$_TimeEdit': endTime,
-            'EmpNoNameCtrl1$InputTB': employeeIdOrName
-        };
-        if (nextPage) {
-            postObj['GridPageNavigator1$NextBtn'] = 'Next Page';
-        } else {
-            postObj['QueryBtn'] = 'Inquire';
-        }
-
-        let postData = querystring.stringify(postObj);
-
-        let req = http.request({
-            hostname: "twhratsql.whq.wistron",
-            path: "/OGWeb/OGWebReport/EntryLogQueryForm.aspx",
-            method: "POST",
-            headers: {
-                'User-Agent': 'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 10.0; WOW64; Trident/7.0; .NET4.0C; .NET4.0E; .NET CLR 2.0.50727; .NET CLR 3.0.30729; .NET CLR 3.5.30729; MAARJS)', // mimic IE 11 // important
-                'X-MicrosoftAjax': 'Delta=true', // important
-                'Cookie': `ASP.NET_SessionId=${_ASPNET_SessionId}; OGWeb=${OGWeb}`, // important
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Content-Length': Buffer.byteLength(postData)
-            }
-        }, callback);
-
-        req.on('error', e => {
-            console.error(`Step4 Problem: ${e.message}`);
+function inquire(beginDate, endDate, employeeIdOrName, nextPage, nextStep) {
+    // return new Promise(function (resolve, reject) {
+    function callback(response) {
+        let chunks = [];
+        response.addListener('data', (chunk) => {
+            chunks.push(chunk);
         });
+        response.on('end', () => {
+            let buff = Buffer.concat(chunks);
+            let html = buff.toString();
+            if (response.statusCode === 200) {
+                let result = parseKQ(html);
+                let fo = fs.createWriteStream(`tmp/step4-inquire-${employeeIdOrName}-${result.curPage}.html`);
+                fo.write(html);
+                fo.end();
+                if (result.curPage < result.numPages) {
+                    inquire(beginDate, endDate, employeeIdOrName, true, nextStep);
+                } else {
+                    console.log(`Inquiry about ${employeeIdOrName} is done.`);
+                    if (nextStep) { // If provided.
+                        nextStep();
+                    }
+                }
+            } else {
+                console.error(`Inquiry HTTP error: ${response.statusMessage}`);
+            }
+        });
+    }
 
-        req.end(postData);
-        resolve();
-    })
+    var beginTime = '0:00';
+    var endTime = '23:59';
+
+    let postObj = {
+        'TQuarkScriptManager1': 'QueryResultUpdatePanel|QueryBtn',
+        'TQuarkScriptManager1_HiddenField': ';;AjaxControlToolkit, Version=1.0.20229.20821, Culture=neutral, PublicKeyToken=28f01b0e84b6d53e:en-US:c5c982cc-4942-4683-9b48-c2c58277700f:411fea1c:865923e8;;AjaxControlToolkit, Version=1.0.20229.20821, Culture=neutral, PublicKeyToken=28f01b0e84b6d53e:en-US:c5c982cc-4942-4683-9b48-c2c58277700f:91bd373d:d7d5263e:f8df1b50;;AjaxControlToolkit, Version=1.0.20229.20821, Culture=neutral, PublicKeyToken=28f01b0e84b6d53e:en-US:c5c982cc-4942-4683-9b48-c2c58277700f:e7c87f07:bbfda34c:30a78ec5;;AjaxControlToolkit, Version=1.0.20229.20821, Culture=neutral, PublicKeyToken=28f01b0e84b6d53e:en-US:c5c982cc-4942-4683-9b48-c2c58277700f:9b7907bc:9349f837:d4245214;;AjaxControlToolkit, Version=1.0.20229.20821, Culture=neutral, PublicKeyToken=28f01b0e84b6d53e:en-US:c5c982cc-4942-4683-9b48-c2c58277700f:e3d6b3ac;',
+        '__ctl07_Scroll': '0,0',
+        '__VIEWSTATEGENERATOR': 'A21EDEFC',
+        '_ASPNetRecycleSession': _ASPNetRecycleSession,
+        '__VIEWSTATE': __VIEWSTATE,
+        '_PageInstance': 26,
+        '__EVENTVALIDATION': __EVENTVALIDATION,
+        'AttNoNameCtrl1$InputTB': '上海欽江路',
+        'BeginDateTB$Editor': beginDate,
+        'BeginDateTB$_TimeEdit': beginTime,
+        'EndDateTB$Editor': endDate,
+        'EndDateTB$_TimeEdit': endTime,
+        'EmpNoNameCtrl1$InputTB': employeeIdOrName
+    };
+    if (nextPage) {
+        postObj['GridPageNavigator1$NextBtn'] = 'Next Page';
+    } else {
+        postObj['QueryBtn'] = 'Inquire';
+    }
+
+    let postData = querystring.stringify(postObj);
+
+    let req = http.request({
+        hostname: "twhratsql.whq.wistron",
+        path: "/OGWeb/OGWebReport/EntryLogQueryForm.aspx",
+        method: "POST",
+        headers: {
+            'User-Agent': 'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 10.0; WOW64; Trident/7.0; .NET4.0C; .NET4.0E; .NET CLR 2.0.50727; .NET CLR 3.0.30729; .NET CLR 3.5.30729; MAARJS)', // mimic IE 11 // important
+            'X-MicrosoftAjax': 'Delta=true', // important
+            'Cookie': `ASP.NET_SessionId=${_ASPNET_SessionId}; OGWeb=${OGWeb}`, // important
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Content-Length': Buffer.byteLength(postData)
+        }
+    }, callback);
+
+    req.on('error', e => {
+        console.error(`Step4 Problem: ${e.message}`);
+    });
+
+    req.end(postData);
+
+    // resolve();
+    // })
 }
 
 /**
@@ -291,7 +292,6 @@ var inquire = function (beginDate, endDate, employeeIdOrName, nextPage, nextStep
  * @param {*} html 
  * @return number of current page and number of total pages.
  */
-var personTimeArr = [];
 
 function parseKQ(html) {
     // Get number of pages.
@@ -326,14 +326,18 @@ function parseKQ(html) {
         let m = rex.exec(html);
         if (m) {
             console.log(`${m[1]} ${m[2]} ${m[3]} ${m[4]}`);
-            Department = `${m[1]}`;
-            EID = `${m[2]}`;
-            Name = `${m[3]}`
-            let datatime = `${m[4]}`;
-            if (datatime != null) {
-                let datatimeArr = datatime.split(" ");
-                personTimeArr.push(datatimeArr);
+            let checkDatetime = moment(m[4], 'MM/DD/YYYY H:mm:ss');
+            let dateArr = checkDatetime.toArray();
+            //  [years, months, date, hours, minutes, seconds, milliseconds]
+            let clockInDate = `${dateArr[0]}-${dateArr[1] + 1}-${dateArr[2]}`;
+            let clockInTime = `${dateArr[3]}:${dateArr[4]}:${dateArr[5]}`;
+            let person = `${m[2]} ${m[3]}`;
+            if (!Arr[person]) {
+                Arr[person] = [];
             }
+            if (!Arr[person][clockInDate])
+                Arr[person][clockInDate] = [];
+            Arr[person][clockInDate].push(clockInTime);
             html = html.substr(rex.lastIndex);
         } else {
             break;
@@ -347,135 +351,87 @@ function parseKQ(html) {
 
 function askAll() {
     startTime = '2021-01-01';
-    endTime = '2021-01-07';
-    inquire(startTime, endTime, 'S2008003', false, )
-        .then(function () {
-            inquire(startTime, endTime, 'Ce Xian', false, )
-        })
-        .then(function () {
-            inquire(startTime, endTime, 'Carlos Jiang', false, )
-        })
-        .then(function () {
-            inquire(startTime, endTime, 'Xu Qian', false, )
-        })
-        .then(function () {
-            inquire(startTime, endTime, 'Lance Li', false, )
-        })
-        .then(function () {
-            inquire(startTime, endTime, 'Anne', false, )
-        })
-        .then(function () {
-            inquire(startTime, endTime, 'Jack QP Zhang', false, )
-        })
-        .catch(function (err) {
-            console.log(err);
-        })
+    endTime = '2021-01-25';
+    inquire(startTime, endTime, 'S2008003', false,
+        () => inquire(startTime, endTime, 'Ce Xian', false,
+            () => inquire(startTime, endTime, 'Carlos Jiang', false,
+                () => inquire(startTime, endTime, 'Xu Qian', false,
+                    () => inquire(startTime, endTime, 'Lance Li', false,
+                        () => inquire(startTime, endTime, 'Anne', false,
+                            () => inquire(startTime, endTime, 'Jack QP Zhang', false,
+                                function () {
+                                    console.log("All done.");
+                                    TimeAdjust();
+                                })))))));
 }
 
-var count = 0;
-
 function TimeAdjust() {
-    let startDay = moment(startTime);
-    let endDay = moment(endTime);
-    personTimeArr.push(Department);
-    personTimeArr.push(EID);
-    personTimeArr.push(Name);
-    let personTimearr = personTimeArr.slice(count, personTimeArr.length);
-    count = personTimeArr.length;
-    // console.log(personTimearr)
-    let arriveTime = '08:50:00';
-    let leaveTime = '16:50:00';
-    // console.log(personTimearr);
-    for (let i = personTimearr.length - 4; i >= 0;) {
-        if (i === personTimearr.length - 4) {
-            console.log(personTimearr[personTimearr.length - 3] + ' ' + personTimearr[personTimearr.length - 2] + ' ' +
-                personTimearr[personTimearr.length - 1] + ':');
+    const ARRIVETIME = "08:50:59";
+    const LEAVETIME = "16:50:00";
+    // console.log(Arr);
+    let printStr = "";
+    for (let item in Arr) {
+        let personRecord = Arr[item];
+        let startDay = moment(startTime);
+        let endDay = moment(endTime);
+        startDay = startDay.add(-1, 'day');
+        for (let date in personRecord) {
+            let m = moment(`${date} ${personRecord[date][0]}`, "YYYY-MM-DD HH:mm:ss");
+            let outComeTimeStr = "";
+            let inComeTimeStr = "";
+            let adiustTimeincome = moment(`${date} ${ARRIVETIME}`, "YYYY-MM-DD HH:mm:ss");
+            let adiustTimeleave = moment(`${date} ${LEAVETIME}`, "YYYY-MM-DD HH:mm:ss");
+            let day = "";
+            // 从最近的一天到最开始有记录的那一天 如果没有打卡的话
+            while (!m.isSame(endDay, 'day')) {
+                printStr = '';
+                day = endDay.format("YYYY-M-D");
+                if (endDay.weekday() === 0 || endDay.weekday() === 6) {
+                    printStr += '   周末';
+                }
+                if (endDay.weekday() >= 1 && endDay.weekday() <= 5) {
+                    printStr += '  请假';
+                }
+                endDay = endDay.add(-1, 'day');
+                console.log(`${item} ${day} ${inComeTimeStr} ${outComeTimeStr} ${printStr}`);
+            }
+            printStr = '';
+            if (personRecord[date].length == 1) {
+                printStr += "只刷一次 ";
+                inComeTimeStr = personRecord[date][0];
+            }
+            if (personRecord[date].length >= 2) {
+                outComeTimeStr = personRecord[date][0];
+                inComeTimeStr = personRecord[date].pop();
+                let outComeTime = moment(date + ' ' + outComeTimeStr, "YYYY-MM-DD HH:mm:ss");
+                let inComeTime = moment(date + ' ' + inComeTimeStr, "YYYY-MM-DD HH:mm:ss");
+                if (inComeTime.isAfter(adiustTimeincome))
+                    printStr += "迟到 ";
+                if (outComeTime.isBefore(adiustTimeleave))
+                    printStr += "早退 ";
+                if (outComeTime.diff(inComeTime, 'hours') < 9)
+                    printStr += "工时不足 ";
+                if (outComeTime.diff(inComeTime, 'hours') >= 9) {
+                    printStr += "nice workhours ";
+                    printStr += outComeTime.diff(inComeTime, 'hours')
+                }
+            }
+            console.log(`${item} ${date} ${inComeTimeStr} ${outComeTimeStr} ${printStr}`);
+            endDay = endDay.add(-1, 'day');
         }
-        let Time1 = [];
-        Time1.push(personTimearr[i][0]);
-        Time1.push(personTimearr[i][1]);
-        let TimeStr = Time1.join();
-        let m = moment(TimeStr, "M/D/YYYY H:mm:ss");
-        // console.log(m);
-
-        while (!m.isSame(startDay, 'day')) {
-            let day = startDay.format("M/D/YYYY");
-            if (startDay.weekday() === 0 || startDay.weekday() === 6) {
-                console.log(day + '       周末');
-            } else {
-                console.log(day + '       请假');
+        // 为了判断查出有记录的最后一天是不是用户想要查询的第一天
+        while (!endDay.isSame(startDay, 'day')) {
+            printStr = "";
+            let day = endDay.format("YYYY-M-D");
+            if (endDay.weekday() === 0 || endDay.weekday() === 6) {
+                printStr += '   周末';
             }
-            startDay = startDay.add(1, 'day');
-        }
-        let j = i;
-        let flag = 0;
-        let Time2 = [];
-        let TimeStr2 = '';
-        let printStr = '';
-        // 上一个打卡时间
-        if (i >= 1) {
-            Time2.push(personTimearr[i - 1][0]);
-            Time2.push(personTimearr[i - 1][1]);
-            TimeStr2 = Time2.join();
-        }
-        // 判断同一天打卡几次
-        while (!(m.isBefore(moment(TimeStr2, "M/D/YYYY H:mm:ss"), 'day')) && i >= 1) {
-            Time2 = [];
-            Time2.push(personTimearr[i - 1][0]);
-            Time2.push(personTimearr[i - 1][1]);
-            TimeStr2 = Time2.join();
-            i--;
-            flag++;
-        }
-        if (flag != 0) {
-            let adiustTimeincome = [];
-            adiustTimeincome.push(personTimearr[j][0]);
-            adiustTimeincome.push(arriveTime);
-            let adiustTimeinStr = adiustTimeincome.join();
-            let adjustinTime = moment(adiustTimeinStr, "M/D/YYYY H:mm:ss");
-            // console.log(adjustinTime);
-            let adiustTimeleave = [];
-            adiustTimeleave.push(personTimearr[j][0]);
-            adiustTimeleave.push(leaveTime);
-            let adiustTimeleaveStr = adiustTimeleave.join();
-            let adiustleaveTime = moment(adiustTimeleaveStr, "M/D/YYYY H:mm:ss");
-            // console.log(adiustleaveTime);
-            let inCurrentstr = personTimearr[j].join();
-            let incomeTime = moment(inCurrentstr, "M/D/YYYY H:mm:ss");
-            // console.log(incomeTime);
-            let outCurrentStr = '';
-            if (i === 0 && moment(personTimearr[0].join(), "M/D/YYYY H:mm:ss").isSame(incomeTime, 'day')) {
-                outCurrentStr = personTimearr[i].join();
-            } else {
-                outCurrentStr = personTimearr[i + 1].join();
+            if (endDay.weekday() >= 1 && endDay.weekday() <= 5) {
+                printStr += '  请假';
             }
-            // console.log(outCurrentStr);
-            let leavTime = moment(outCurrentStr, "M/D/YYYY H:mm:ss");
-            // console.log(leavTime);
-            let workhours = leavTime.diff(incomeTime, 'hours');
-            // console.log(momoent("1/15/2021 17:55:19").diff(incomeTime, 'hours'))
-            if (workhours < '9') {
-                printStr += "   工时不足";
-            }
-            if (incomeTime.isAfter(adjustinTime)) {
-                printStr += "      迟到";
-            }
-            if (leavTime.isBefore(adiustleaveTime)) {
-                printStr += "      早退";
-            }
-            if (printStr === '') {
-                printStr += "      nice  workHours   " + workhours + "h";
-            }
-            console.log(personTimearr[j][0] + ' ' + printStr);
-        } else {
-            console.log(personTimearr[j][0] + ' ' + '   只刷卡一次');
-            i--;
-        }
-        startDay = startDay.add(1, 'day');
-        if (m.isSame(endDay, 'day')) {
-            break;
+            endDay = endDay.add(-1, 'day');
+            console.log(`${item} ${day}  ${printStr}`);
         }
     }
-
 }
 openLoginPage(); // Where it all begin
